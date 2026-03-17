@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>整合主頁面</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <input type="radio" id="tab-a" name="nav-tab" checked>
+    <input type="radio" id="tab-b" name="nav-tab">
+    <input type="radio" id="tab-c" name="nav-tab">
+    <input type="radio" id="tab-d" name="nav-tab">
+
+    <div class="app-container">
+        <nav class="top-nav">
+            <label for="tab-a" class="nav-item">
+                <div class="thumbnail"><iframe src="Login/login_page.html" tabindex="-1"></iframe></div>
+                <span>Page A</span>
+            </label>
+            
+            <label for="tab-b" class="nav-item">
+                <div class="thumbnail"><iframe src="Todo/todo_page.html" tabindex="-1"></iframe></div>
+                <span>Page B</span>
+            </label>
+            
+            <label for="tab-c" class="nav-item">
+                <div class="thumbnail"><iframe src="Diary/diary_page.html" tabindex="-1"></iframe></div>
+                <span>Page C</span>
+            </label>
+            
+            <label for="tab-d" class="nav-item">
+                <div class="thumbnail"><iframe src="d.html" tabindex="-1"></iframe></div>
+                <span>Page D</span>
+            </label>
+        </nav>
+
+        <main class="main-content">
+            <div class="page" id="page-a"><iframe src="Login/login_page.html"></iframe></div>
+            <div class="page" id="page-b"><iframe src="Todo/todo_page.html"></iframe></div>
+            <div class="page" id="page-c"><iframe src="Diary/diary_page.html"></iframe></div>
+            <div class="page" id="page-d"><iframe src="d.html"></iframe></div>
+        </main>
+    </div>
+
+</body>
+</html>

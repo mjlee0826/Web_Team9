@@ -1,0 +1,110 @@
+/* 重置基本樣式 */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: sans-serif;
+}
+
+/* 隱藏作為邏輯控制的 radio buttons */
+input[type="radio"] {
+    display: none;
+}
+
+/* 整個頁面的容器 */
+.app-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh; /* 滿版高度 */
+    background-color: #fafafa;
+}
+
+/* --- 頂部導覽列設計 --- */
+.top-nav {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    background-color: #ffffff;
+    border-bottom: 1px solid #dbdbdb;
+    padding: 10px 0;
+    flex-shrink: 0; /* 防止導覽列被壓縮 */
+}
+
+/* 單個 Tab 區塊 */
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    color: #8e8e8e;
+    transition: color 0.2s;
+}
+
+.nav-item span {
+    font-size: 12px;
+    margin-top: 6px;
+    font-weight: bold;
+}
+
+/* --- 縮圖設計 (核心技巧) --- */
+.thumbnail {
+    width: 40px;  /* 縮圖的寬度 */
+    height: 50px; /* 縮圖的高度 */
+    overflow: hidden;
+    position: relative;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    /* 關鍵：讓滑鼠點擊穿透 iframe，確保 label 可以被點擊到 */
+    pointer-events: none; 
+}
+
+/* 將真實網頁放大後縮小塞進去 */
+.thumbnail iframe {
+    width: 400px;  /* 原始網頁假定寬度 */
+    height: 500px; /* 原始網頁假定高度 */
+    transform: scale(0.1); /* 縮小到 10% */
+    transform-origin: top left;
+    border: none;
+}
+
+/* --- 點擊後的 Active 狀態樣式 --- */
+#tab-a:checked ~ .app-container label[for="tab-a"],
+#tab-b:checked ~ .app-container label[for="tab-b"],
+#tab-c:checked ~ .app-container label[for="tab-c"],
+#tab-d:checked ~ .app-container label[for="tab-d"] {
+    color: #000000;
+}
+
+#tab-a:checked ~ .app-container label[for="tab-a"] .thumbnail,
+#tab-b:checked ~ .app-container label[for="tab-b"] .thumbnail,
+#tab-c:checked ~ .app-container label[for="tab-c"] .thumbnail,
+#tab-d:checked ~ .app-container label[for="tab-d"] .thumbnail {
+    border: 2px solid #000000; /* 選中時縮圖外框加粗變黑 */
+}
+
+/* --- 主內容區設計 --- */
+.main-content {
+    flex-grow: 1; /* 填滿剩餘空間 */
+    position: relative;
+}
+
+.page {
+    display: none; /* 預設全部隱藏 */
+    width: 100%;
+    height: 100%;
+}
+
+.page iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: block;
+}
+
+/* --- 根據選中的 Radio 顯示對應的 Page --- */
+#tab-a:checked ~ .app-container #page-a,
+#tab-b:checked ~ .app-container #page-b,
+#tab-c:checked ~ .app-container #page-c,
+#tab-d:checked ~ .app-container #page-d {
+    display: block;
+}
