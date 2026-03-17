@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily Habits Tracker</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="daily-habits.css">
+</head>
+<body>
+
+<header class="header">
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="8" cy="8" r="6" fill="white"/>
+        <path d="M8 4v4l2.5 1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <span class="logo-name">Daily Habits</span>
+  </div>
+  <div class="header-right">
+    <button class="add-btn" onclick="openModal()">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+        <path d="M6 1v10M1 6h10" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+      Add Habit
+    </button>
+  </div>
+</header>
+
+<main class="main">
+
+  <!-- Dashboard Section -->
+  <section class="dashboard">
+    <div class="dashboard-header">
+      <span class="dashboard-title">Progress Dashboard</span>
+      <div class="dashboard-badges" id="dashboardBadges">
+        <!-- Badges will be shown here -->
+      </div>
+    </div>
+    <div class="dashboard-charts" id="dashboardCharts">
+      <!-- Placeholder for charts/graphs -->
+      <div class="chart-placeholder">Charts coming soon!</div>
+    </div>
+    <div class="dashboard-motivation" id="dashboardMotivation">
+      <!-- Motivational messages -->
+    </div>
+    <div class="dashboard-summary" id="dashboardSummary">
+      <!-- Weekly/monthly summaries -->
+    </div>
+  </section>
+
+  <section class="habits-section">
+    <div class="habits-list inprogress-list" id="habitsListInProgress">
+      <div class="inprogress-title">In-Progress</div>
+      <!-- In-Progress Habit cards will be inserted here -->
+    </div>
+    <div class="habits-list done-list" id="habitsListDone">
+      <div class="done-title">Done</div>
+      <!-- Done Habit cards will be inserted here -->
+    </div>
+  </section>
+</main>
+
+<!-- Modal -->
+<div class="modal-overlay hidden" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-title">Add New Habit</div>
+
+    <div class="form-field">
+      <label class="form-label">Habit Name</label>
+      <input class="form-input" type="text" id="habitTitle" placeholder="e.g., Drink water">
+    </div>
+
+    <div class="form-field">
+      <label class="form-label">Type</label>
+      <div class="type-grid">
+        <div class="type-pick" data-type="checkbox" onclick="selectType('checkbox')">Yes/No</div>
+        <div class="type-pick unsel" data-type="number" onclick="selectType('number')">Quantity</div>
+      </div>
+    </div>
+
+    <div class="form-field" id="unitField" style="display: none;">
+      <label class="form-label">Unit</label>
+      <input class="form-input" type="text" id="habitUnit" placeholder="e.g., glasses, minutes">
+    </div>
+
+    <div class="form-field">
+      <label class="form-label">Goal</label>
+      <div class="goal-row">
+        <input class="form-input" type="number" id="habitGoal" placeholder="e.g., 8">
+        <span id="goalUnitLabel">unit</span>
+        <select class="form-input goal-period" id="habitGoalPeriod">
+          <option value="day">per day</option>
+          <option value="week">per week</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" onclick="saveHabit()">Save Habit</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Simple script for demo - in real app, use localStorage or backend
+let habits = [
+  { id: 1, title: 'Drink water', type: 'number', unit: 'glasses', todayValue: '' },
+  { id: 2, title: 'Exercise', type: 'checkbox', unit: '', todayValue: false },
+];
+
+let selectedType = 'checkbox';
+
+function renderHabits() {
+  const listInProgress = document.getElementById('habitsListInProgress');
+  const listDone = document.getElementById('habitsListDone');
+  listInProgress.innerHTML = '<div class="inprogress-title">In-Progress</div>';
+  listDone.innerHTML = '<div class="done-title">Done</div>';
+  habits.forEach(habit => {
+    const card = document.createElement('div');
+    card.className = 'habit-card';
+    let progressInput = '';
+    if (habit.type === 'checkbox') {
+      progressInput = `<input type="checkbox" ${habit.todayValue ? 'checked' : ''} onchange="updateHabit(${habit.id}, this.checked)">`;
+    } else {
+      progressInput = `
+        <div class="habit-quick-inputs">
+          <button class="quick-btn" onclick="quickAdd(${habit.id}, 1)">+1</button>
+          <button class="quick-btn" onclick="quickAdd(${habit.id}, 2)">+2</button>
+          <button class="quick-btn" onclick="quickAdd(${habit.id}, 5)">+5</button>
+        </div>
+        <input type="range" min="0" max="${habit.goal || 10}" value="${habit.todayValue || 0}" step="1" onchange="updateHabit(${habit.id}, this.value)">
+        <input type="number" value="${habit.todayValue}" placeholder="0" onchange="updateHabit(${habit.id}, this.value)"> ${habit.unit}
+      `;
+    }
+    // Checklist visual
+    let checklist = `<span class="checkmark ${habit.completedToday ? 'checked' : ''}"></span>`;
+    card.innerHTML = `
+      <div class="habit-title-row">
+        ${checklist}
+        <div class="habit-title${habit.completedToday ? ' done-text' : ''}">${habit.title}</div>
+        <div class="habit-streak">🔥 Streak: <span id="streak-${habit.id}">${habit.streak || 0}</span></div>
+        <button class="edit-btn" onclick="editHabit(${habit.id})" title="Edit Habit">✏️</button>
+      </div>
+      <div class="habit-goal">Goal: ${habit.goal || ''} ${habit.unit || ''} <span class="goal-period">${habit.goalPeriod === 'week' ? 'per week' : 'per day'}</span></div>
+      <div class="habit-input">${progressInput}</div>
+      <div class="habit-status">${habit.type === 'checkbox' ? (habit.todayValue ? '✅ Done' : '❌ Not done') : ''}</div>
+    `;
+    if (habit.completedToday) {
+      card.classList.add('done');
+      listDone.appendChild(card);
+    } else {
+      listInProgress.appendChild(card);
+    }
+  });
+}
+
+function updateHabit(id, value) {
+  const habit = habits.find(h => h.id === id);
+  if (habit.type === 'number') {
+    habit.todayValue = Number(value);
+    if (habit.todayValue >= (habit.goal || 0)) {
+      habit.completedToday = true;
+    } else {
+      habit.completedToday = false;
+    }
+  } else {
+    habit.todayValue = value === true || value === 'true';
+    habit.completedToday = habit.todayValue;
+  }
+  // Streak logic (simple: increment if completed, reset if not)
+  if (habit.completedToday) {
+    habit.streak = (habit.streak || 0) + 1;
+  } else {
+    habit.streak = 0;
+  }
+  renderHabits();
+  // In real app, save to storage
+}
+
+function quickAdd(id, amount) {
+  const habit = habits.find(h => h.id === id);
+  habit.todayValue = Number(habit.todayValue || 0) + amount;
+  updateHabit(id, habit.todayValue);
+}
+
+let editMode = false;
+let editHabitId = null;
+function openModal(edit = false, habit = null) {
+  document.getElementById('modalOverlay').classList.remove('hidden');
+  editMode = edit;
+  editHabitId = habit ? habit.id : null;
+  if (edit && habit) {
+    document.querySelector('.modal-title').textContent = 'Edit Habit';
+    document.getElementById('habitTitle').value = habit.title;
+    selectType(habit.type);
+    document.getElementById('habitUnit').value = habit.unit || '';
+    document.getElementById('habitGoal').value = habit.goal || '';
+    document.getElementById('habitGoalPeriod').value = habit.goalPeriod || 'day';
+    updateGoalUnitLabel();
+  } else {
+    document.querySelector('.modal-title').textContent = 'Add New Habit';
+    document.getElementById('habitTitle').value = '';
+    document.getElementById('habitUnit').value = '';
+    document.getElementById('habitGoal').value = '';
+    document.getElementById('habitGoalPeriod').value = 'day';
+    selectType('checkbox');
+    updateGoalUnitLabel();
+  }
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.add('hidden');
+  editMode = false;
+  editHabitId = null;
+}
+
+function selectType(type) {
+  selectedType = type;
+  document.querySelectorAll('.type-pick').forEach(pick => {
+    pick.classList.toggle('unsel', pick.dataset.type !== type);
+  });
+  document.getElementById('unitField').style.display = type === 'number' ? 'block' : 'none';
+  updateGoalUnitLabel();
+}
+
+function updateGoalUnitLabel() {
+  const unit = document.getElementById('habitUnit').value.trim() || 'unit';
+  document.getElementById('goalUnitLabel').textContent = selectedType === 'number' ? unit : '';
+}
+document.getElementById('habitUnit').addEventListener('input', updateGoalUnitLabel);
+
+function saveHabit() {
+  const title = document.getElementById('habitTitle').value.trim();
+  if (!title) return;
+  const unit = selectedType === 'number' ? document.getElementById('habitUnit').value.trim() : '';
+  const goal = Number(document.getElementById('habitGoal').value.trim()) || 0;
+  const goalPeriod = document.getElementById('habitGoalPeriod').value;
+  if (editMode && editHabitId !== null) {
+    updateHabitDetails(editHabitId, { title, type: selectedType, unit, goal, goalPeriod });
+  } else {
+    habits.push({
+      id: Date.now(),
+      title,
+      type: selectedType,
+      unit,
+      goal,
+      goalPeriod,
+      todayValue: selectedType === 'checkbox' ? false : 0,
+      streak: 0,
+      completedToday: false
+    });
+  }
+  renderHabits();
+  closeModal();
+}
+
+function editHabit(id) {
+  const habit = habits.find(h => h.id === id);
+  openModal(true, habit);
+}
+
+function updateHabitDetails(id, details) {
+  const habit = habits.find(h => h.id === id);
+  if (!habit) return;
+  habit.title = details.title;
+  habit.type = details.type;
+  habit.unit = details.unit;
+  habit.goal = details.goal;
+  habit.goalPeriod = details.goalPeriod;
+  // Reset input if type changed
+  habit.todayValue = habit.type === 'checkbox' ? false : 0;
+  habit.streak = habit.streak || 0;
+  habit.completedToday = false;
+}
+
+renderHabits();
+// Placeholder: update dashboard, badges, motivation, summary
+function updateDashboard() {
+  document.getElementById('dashboardBadges').innerHTML = '<span class="badge">🏅 Streak Master</span>';
+  document.getElementById('dashboardMotivation').textContent = 'Keep going! You are building great habits!';
+  document.getElementById('dashboardSummary').textContent = 'Weekly/Monthly summaries coming soon!';
+}
+updateDashboard();
+</script>
+
+</body>
+</html>
