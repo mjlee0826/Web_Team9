@@ -3,87 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>簡單登入頁面</title>
+    <title>簡單登入頁面 (加入 JS)</title>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        /* --- 原本的 CSS 保持不變 --- */
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        .login-container { background-color: #ffffff; padding: 40px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); width: 100%; max-width: 360px; }
+        .login-container h2 { text-align: center; color: #333333; margin-bottom: 24px; }
+        .input-group { margin-bottom: 20px; }
+        .input-group label { display: block; margin-bottom: 8px; color: #555555; font-size: 14px; }
+        .input-group input { width: 100%; padding: 12px; border: 1px solid #cccccc; border-radius: 4px; font-size: 16px; transition: border-color 0.3s; }
+        .input-group input:focus { border-color: #007bff; outline: none; box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2); }
+        .login-btn { width: 100%; padding: 12px; background-color: #007bff; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; transition: background-color 0.3s; margin-top: 10px; }
+        .login-btn:hover { background-color: #0056b3; }
+
+        /* --- 新增的 CSS：為 JS 功能做準備 --- */
+        
+        /* 密碼輸入框的外層容器，用來定位顯示密碼按鈕 */
+        .password-wrapper {
+            position: relative;
         }
 
-        body {
-            background-color: #f0f2f5;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
-
-        .login-container {
-            background-color: #ffffff;
-            padding: 40px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            max-width: 360px;
-        }
-
-        .login-container h2 {
-            text-align: center;
-            color: #333333;
-            margin-bottom: 24px;
-        }
-
-        .input-group {
-            margin-bottom: 20px;
-        }
-
-        .input-group label {
-            display: block;
-            margin-bottom: 8px;
-            color: #555555;
-            font-size: 14px;
-        }
-
-        .input-group input {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #cccccc;
-            border-radius: 4px;
-            font-size: 16px;
-            transition: border-color 0.3s;
-        }
-
-        .input-group input:focus {
-            border-color: #007bff;
-            outline: none;
-            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2);
-        }
-
-        .login-btn {
-            width: 100%;
-            padding: 12px;
-            background-color: #007bff;
-            color: white;
+        /* 顯示/隱藏密碼的按鈕樣式 */
+        .toggle-btn {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
             border: none;
-            border-radius: 4px;
-            font-size: 16px;
+            color: #007bff;
             cursor: pointer;
-            transition: background-color 0.3s;
-            margin-top: 10px;
+            font-size: 14px;
+            font-weight: bold;
         }
 
-        .login-btn:hover {
-            background-color: #0056b3;
+        /* 訊息提示區塊樣式 */
+        .message-box {
+            margin-top: 15px;
+            text-align: center;
+            font-size: 14px;
+            min-height: 20px; /* 預留高度避免畫面跳動 */
         }
+        .message-box.error { color: #dc3545; }
+        .message-box.success { color: #28a745; }
     </style>
 </head>
 <body>
 
     <div class="login-container">
         <h2>歡迎登入</h2>
-        <form>
+        <form id="loginForm">
             <div class="input-group">
                 <label for="username">帳號</label>
                 <input type="text" id="username" name="username" placeholder="請輸入帳號" required>
@@ -91,12 +61,79 @@
 
             <div class="input-group">
                 <label for="password">密碼</label>
-                <input type="password" id="password" name="password" placeholder="請輸入密碼" required>
+                <div class="password-wrapper">
+                    <input type="password" id="password" name="password" placeholder="請輸入密碼" required>
+                    <button type="button" id="togglePassword" class="toggle-btn">顯示</button>
+                </div>
             </div>
 
             <button type="submit" class="login-btn">登入</button>
+            
+            <div id="messageBox" class="message-box"></div>
         </form>
     </div>
+
+    <script>
+        // 1. 取得 DOM 元素
+        const loginForm = document.getElementById('loginForm');
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        const togglePasswordBtn = document.getElementById('togglePassword');
+        const messageBox = document.getElementById('messageBox');
+
+        // 2. 實作「顯示/隱藏密碼」功能
+        togglePasswordBtn.addEventListener('click', function() {
+            // 檢查目前的 input 類型
+            const isPassword = passwordInput.getAttribute('type') === 'password';
+            
+            // 切換 type 屬性
+            passwordInput.setAttribute('type', isPassword ? 'text' : 'password');
+            
+            // 更改按鈕文字
+            this.textContent = isPassword ? '隱藏' : '顯示';
+        });
+
+        // 3. 實作「表單送出攔截與驗證」功能
+        loginForm.addEventListener('submit', function(event) {
+            // 阻止表單預設的送出行為（避免畫面重新載入）
+            event.preventDefault();
+
+            // 清除之前的訊息
+            messageBox.textContent = '';
+            messageBox.className = 'message-box';
+
+            // 取得輸入的值並去除前後空白
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value.trim();
+
+            // 簡易的客戶端驗證邏輯
+            if (username.length < 4) {
+                showMessage('帳號長度至少需要 4 個字元', 'error');
+                return; // 驗證失敗就停止往下執行
+            }
+
+            if (password.length < 6) {
+                showMessage('密碼長度至少需要 6 個字元', 'error');
+                return;
+            }
+
+            // 如果驗證通過，模擬送到後端的行為
+            showMessage('登入中...', 'success');
+            
+            // 模擬 API 請求延遲
+            setTimeout(() => {
+                console.log('送出的資料:', { username, password });
+                showMessage('登入成功！', 'success');
+                // 這裡通常會加上 window.location.href = '/home' 之類的跳轉邏輯
+            }, 1000);
+        });
+
+        // 輔助函數：用來顯示訊息
+        function showMessage(text, type) {
+            messageBox.textContent = text;
+            messageBox.classList.add(type);
+        }
+    </script>
 
 </body>
 </html>

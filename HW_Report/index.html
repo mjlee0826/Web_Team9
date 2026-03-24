@@ -8,41 +8,37 @@
 </head>
 <body>
 
-    <input type="radio" id="tab-a" name="nav-tab" checked>
-    <input type="radio" id="tab-b" name="nav-tab">
-    <input type="radio" id="tab-c" name="nav-tab">
-    <input type="radio" id="tab-d" name="nav-tab">
-
     <div class="app-container">
         <nav class="top-nav">
-            <label for="tab-a" class="nav-item">
+            <div class="nav-item active" data-target="page-a">
                 <div class="thumbnail"><iframe src="Login/login_page.html" tabindex="-1"></iframe></div>
-                <span>Page A</span>
-            </label>
+                <span>登入</span>
+            </div>
             
-            <label for="tab-b" class="nav-item">
+            <div class="nav-item" data-target="page-b">
                 <div class="thumbnail"><iframe src="Todo/todo_page.html" tabindex="-1"></iframe></div>
-                <span>Page B</span>
-            </label>
+                <span>待辦事項</span>
+            </div>
             
-            <label for="tab-c" class="nav-item">
+            <div class="nav-item" data-target="page-c">
                 <div class="thumbnail"><iframe src="Diary/diary_page.html" tabindex="-1"></iframe></div>
-                <span>Page C</span>
-            </label>
+                <span>數位日記</span>
+            </div>
             
-            <label for="tab-d" class="nav-item">
+            <div class="nav-item" data-target="page-d">
                 <div class="thumbnail"><iframe src="Habits/daily-habits.html" tabindex="-1"></iframe></div>
-                <span>Page D</span>
-            </label>
+                <span>習慣追蹤</span>
+            </div>
         </nav>
 
         <main class="main-content">
-            <div class="page" id="page-a"><iframe src="Login/login_page.html"></iframe></div>
+            <div class="page active" id="page-a"><iframe src="Login/login_page.html"></iframe></div>
             <div class="page" id="page-b"><iframe src="Todo/todo_page.html"></iframe></div>
             <div class="page" id="page-c"><iframe src="Diary/diary_page.html"></iframe></div>
             <div class="page" id="page-d"><iframe src="Habits/daily-habits.html"></iframe></div>
         </main>
     </div>
 
+    <script src="script.js"></script>
 </body>
 </html>
