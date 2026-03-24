@@ -20,7 +20,7 @@
                     <input type="text" class="diary-title" placeholder="給這份心情起個標題...">
                     <textarea class="diary-content" placeholder="今天發生了什麼精彩的事？"></textarea>
                     <div class="editor-footer">
-                        <span class="date-display">2026年3月13日</span>
+                        <span class="date-display">載入中...</span>
                         <button class="save-btn">儲存日記</button>
                     </div>
                 </div>
@@ -48,6 +48,56 @@
             </section>
         </main>
     </div>
+    <script>
+        const today = new Date();
+        document.querySelector('.date-display').textContent = `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日`;
 
+        const saveBtn = document.querySelector('.save-btn');
+        const titleInput = document.querySelector('.diary-title');
+        const contentInput = document.querySelector('.diary-content');
+        const historyGrid = document.querySelector('.history-grid');
+
+        saveBtn.addEventListener('click', function() {
+            
+            const title = titleInput.value;
+            const content = contentInput.value;
+
+            if (title === "" || content === "") {
+                alert("請輸入標題與內容");
+                return; 
+            }
+
+            const now = new Date();
+            const dateString = `${now.getFullYear()}.${(now.getMonth()+1)}.${now.getDate()}`;
+
+            const newCard = document.createElement('article');
+            newCard.className = 'diary-card';
+            newCard.innerHTML = `
+                <div class="card-date">${dateString}</div>
+                <h4>${title}</h4>
+                <p>${content}</p>
+                <button class="read-more">閱讀全文</button>
+            `;
+
+            historyGrid.prepend(newCard);
+
+            titleInput.value = "";
+            contentInput.value = "";
+            
+            console.log("日記已儲存！"); 
+        });
+
+        historyGrid.addEventListener('click', function(e) {
+                
+        if (e.target.classList.contains('read-more')) {
+            
+            const card = e.target.closest('.diary-card');
+            const title = card.querySelector('h4').textContent;
+            const content = card.querySelector('p').textContent;
+
+            alert(`【${title}】\n\n${content}`);
+    }
+});
+    </script>
 </body>
 </html>
