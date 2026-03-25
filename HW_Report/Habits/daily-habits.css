@@ -1,3 +1,56 @@
+.complete-btn {
+  background: #EEF4FF;
+  color: #2970DD;
+  border: 1px solid #B3CEF5;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 16px;
+  cursor: pointer;
+  transition: all 0.13s;
+  margin-right: 8px;
+}
+.complete-btn:disabled {
+  background: var(--surface2);
+  color: var(--text-3);
+  border-color: var(--border-md);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+.complete-btn:hover:not(:disabled) {
+  background: #2970DD;
+  color: #fff;
+}
+.habit-title-row-fixed {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 2px;
+}
+.habit-title-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+.habit-title-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.habit-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text);
+  text-align: left;
+}
+.habit-title.done-text {
+  text-decoration: line-through;
+  color: var(--text-3);
+}
+.habit-title-left input[type="checkbox"] {
+  margin-right: 6px;
+}
 .inprogress-list {
   background: var(--surface);
   border-radius: var(--radius-lg);

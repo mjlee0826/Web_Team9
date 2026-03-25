@@ -105,51 +105,30 @@
 </div>
 
 <script>
-// Simple script for demo - in real app, use localStorage or backend
+// --- State ---
 let habits = [
-  { id: 1, title: 'Drink water', type: 'number', unit: 'glasses', todayValue: '' },
-  { id: 2, title: 'Exercise', type: 'checkbox', unit: '', todayValue: false },
+  { id: 1, title: 'Drink water', type: 'number', goal: 10, unit: 'glasses', todayValue: 3, streak: 2, completedToday: false },
+  { id: 2, title: 'Exercise', type: 'number', goal: 2, unit: 'hours', todayValue: 1, streak: 1, completedToday: false },
+  { id: 3, title: 'Daily journal', type: 'checkbox', unit: '', todayValue: false, streak: 0, completedToday: false }
 ];
-
 let selectedType = 'checkbox';
+let editMode = false;
+let editHabitId = null;
 
+// --- Utility: Find habit by id ---
+function getHabit(id) {
+  return habits.find(h => h.id === id);
+}
+
+// --- Rendering ---
 function renderHabits() {
   const listInProgress = document.getElementById('habitsListInProgress');
   const listDone = document.getElementById('habitsListDone');
   listInProgress.innerHTML = '<div class="inprogress-title">In-Progress</div>';
   listDone.innerHTML = '<div class="done-title">Done</div>';
   habits.forEach(habit => {
-    const card = document.createElement('div');
-    card.className = 'habit-card';
-    let progressInput = '';
-    if (habit.type === 'checkbox') {
-      progressInput = `<input type="checkbox" ${habit.todayValue ? 'checked' : ''} onchange="updateHabit(${habit.id}, this.checked)">`;
-    } else {
-      progressInput = `
-        <div class="habit-quick-inputs">
-          <button class="quick-btn" onclick="quickAdd(${habit.id}, 1)">+1</button>
-          <button class="quick-btn" onclick="quickAdd(${habit.id}, 2)">+2</button>
-          <button class="quick-btn" onclick="quickAdd(${habit.id}, 5)">+5</button>
-        </div>
-        <input type="range" min="0" max="${habit.goal || 10}" value="${habit.todayValue || 0}" step="1" onchange="updateHabit(${habit.id}, this.value)">
-        <input type="number" value="${habit.todayValue}" placeholder="0" onchange="updateHabit(${habit.id}, this.value)"> ${habit.unit}
-      `;
-    }
-    // Checklist visual
-    let checklist = `<span class="checkmark ${habit.completedToday ? 'checked' : ''}"></span>`;
-    card.innerHTML = `
-      <div class="habit-title-row">
-        ${checklist}
-        <div class="habit-title${habit.completedToday ? ' done-text' : ''}">${habit.title}</div>
-        <div class="habit-streak">🔥 Streak: <span id="streak-${habit.id}">${habit.streak || 0}</span></div>
-        <button class="edit-btn" onclick="editHabit(${habit.id})" title="Edit Habit">✏️</button>
-      </div>
-      <div class="habit-goal">Goal: ${habit.goal || ''} ${habit.unit || ''} <span class="goal-period">${habit.goalPeriod === 'week' ? 'per week' : 'per day'}</span></div>
-      <div class="habit-input">${progressInput}</div>
-      <div class="habit-status">${habit.type === 'checkbox' ? (habit.todayValue ? '✅ Done' : '❌ Not done') : ''}</div>
-    `;
+    const card = makeHabitCard(habit);
     if (habit.completedToday) {
-      card.classList.add('done');
       listDone.appendChild(card);
     } else {
       listInProgress.appendChild(card);
@@ -157,37 +136,128 @@ function renderHabits() {
   });
 }
 
+function makeHabitCard(habit) {
+  const card = document.createElement('div');
+  card.className = 'habit-card' + (habit.completedToday ? ' done' : '');
+  // --- Card content ---
+  const titleRow = document.createElement('div');
+  titleRow.className = 'habit-title-row';
+  // Checklist visual
+  const check = document.createElement('span');
+  check.className = 'checkmark' + (habit.completedToday ? ' checked' : '');
+  titleRow.appendChild(check);
+  // Title
+  const title = document.createElement('div');
+  title.className = 'habit-title' + (habit.completedToday ? ' done-text' : '');
+  title.textContent = habit.title;
+  titleRow.appendChild(title);
+  // Streak
+  const streak = document.createElement('div');
+  streak.className = 'habit-streak';
+  streak.innerHTML = '🔥 Streak: <span>' + (habit.streak || 0) + '</span>';
+  titleRow.appendChild(streak);
+  // Edit button
+  const editBtn = document.createElement('button');
+  editBtn.className = 'edit-btn';
+  editBtn.title = 'Edit Habit';
+  editBtn.textContent = '✏️';
+  editBtn.onclick = e => { e.stopPropagation(); openModal(true, habit); };
+  titleRow.appendChild(editBtn);
+  card.appendChild(titleRow);
+  // Goal
+  const goal = document.createElement('div');
+  goal.className = 'habit-goal';
+  goal.innerHTML = 'Goal: ' + (habit.goal || '') + ' ' + (habit.unit || '') + ' <span class="goal-period">' + (habit.goalPeriod === 'week' ? 'per week' : 'per day') + '</span>';
+  card.appendChild(goal);
+  // Input
+  const input = document.createElement('div');
+  input.className = 'habit-input';
+  if (habit.type === 'checkbox') {
+    // Complete button
+    const btn = document.createElement('button');
+    btn.className = 'quick-btn';
+    btn.textContent = habit.completedToday ? 'Completed' : 'Complete';
+    btn.disabled = habit.completedToday;
+    btn.onclick = e => { e.stopPropagation(); markHabitComplete(habit.id); };
+    input.appendChild(btn);
+  } else {
+    // Quick add
+    const quicks = document.createElement('div');
+    quicks.className = 'habit-quick-inputs';
+    [1, 2, 5].forEach(val => {
+      const qb = document.createElement('button');
+      qb.className = 'quick-btn';
+      qb.textContent = '+' + val;
+      qb.onclick = e => { e.stopPropagation(); quickAdd(habit.id, val); };
+      quicks.appendChild(qb);
+    });
+    input.appendChild(quicks);
+    // Range
+    const range = document.createElement('input');
+    range.type = 'range';
+    range.min = 0;
+    range.max = habit.goal || 10;
+    range.value = habit.todayValue || 0;
+    range.step = 1;
+    range.oninput = e => updateHabit(habit.id, e.target.value);
+    input.appendChild(range);
+    // Number input
+    const num = document.createElement('input');
+    num.type = 'number';
+    num.value = habit.todayValue || '';
+    num.placeholder = '0';
+    num.onchange = e => updateHabit(habit.id, e.target.value);
+    input.appendChild(num);
+    // Unit
+    if (habit.unit) {
+      const unitSpan = document.createElement('span');
+      unitSpan.textContent = habit.unit;
+      input.appendChild(unitSpan);
+    }
+  }
+  card.appendChild(input);
+  // Status
+  const status = document.createElement('div');
+  status.className = 'habit-status';
+  if (habit.type === 'checkbox') {
+    status.textContent = habit.completedToday ? '✅ Done' : '❌ Not done';
+  }
+  card.appendChild(status);
+  return card;
+}
+
+// --- Habit logic ---
+function markHabitComplete(id) {
+  const habit = getHabit(id);
+  if (!habit || habit.completedToday) return;
+  habit.todayValue = true;
+  habit.completedToday = true;
+  habit.streak = (habit.streak || 0) + 1;
+  renderHabits();
+}
+
 function updateHabit(id, value) {
-  const habit = habits.find(h => h.id === id);
+  const habit = getHabit(id);
+  if (!habit) return;
   if (habit.type === 'number') {
     habit.todayValue = Number(value);
-    if (habit.todayValue >= (habit.goal || 0)) {
-      habit.completedToday = true;
-    } else {
-      habit.completedToday = false;
-    }
+    habit.completedToday = habit.todayValue >= (habit.goal || 0);
   } else {
     habit.todayValue = value === true || value === 'true';
     habit.completedToday = habit.todayValue;
   }
-  // Streak logic (simple: increment if completed, reset if not)
-  if (habit.completedToday) {
-    habit.streak = (habit.streak || 0) + 1;
-  } else {
-    habit.streak = 0;
-  }
+  habit.streak = habit.completedToday ? (habit.streak || 0) + 1 : 0;
   renderHabits();
-  // In real app, save to storage
 }
 
 function quickAdd(id, amount) {
-  const habit = habits.find(h => h.id === id);
+  const habit = getHabit(id);
+  if (!habit) return;
   habit.todayValue = Number(habit.todayValue || 0) + amount;
   updateHabit(id, habit.todayValue);
 }
 
-let editMode = false;
-let editHabitId = null;
+// --- Modal logic ---
 function openModal(edit = false, habit = null) {
   document.getElementById('modalOverlay').classList.remove('hidden');
   editMode = edit;
@@ -209,6 +279,7 @@ function openModal(edit = false, habit = null) {
     selectType('checkbox');
     updateGoalUnitLabel();
   }
+  setTimeout(() => document.getElementById('habitTitle').focus(), 50);
 }
 
 function closeModal() {
@@ -258,31 +329,43 @@ function saveHabit() {
 }
 
 function editHabit(id) {
-  const habit = habits.find(h => h.id === id);
-  openModal(true, habit);
+  const habit = getHabit(id);
+  if (habit) openModal(true, habit);
 }
 
 function updateHabitDetails(id, details) {
-  const habit = habits.find(h => h.id === id);
+  const habit = getHabit(id);
   if (!habit) return;
   habit.title = details.title;
   habit.type = details.type;
   habit.unit = details.unit;
   habit.goal = details.goal;
   habit.goalPeriod = details.goalPeriod;
-  // Reset input if type changed
   habit.todayValue = habit.type === 'checkbox' ? false : 0;
   habit.streak = habit.streak || 0;
   habit.completedToday = false;
 }
 
-renderHabits();
-// Placeholder: update dashboard, badges, motivation, summary
+// --- Modal dismiss & keyboard shortcuts ---
+document.getElementById('modalOverlay').addEventListener('click', function (e) {
+  if (e.target === this) closeModal();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeModal();
+  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' &&
+      !document.getElementById('modalOverlay').classList.contains('hidden')) saveHabit();
+});
+document.getElementById('habitTitle').addEventListener('keydown',  e => { if (e.key === 'Enter') saveHabit(); });
+
+// --- Dashboard placeholder ---
 function updateDashboard() {
   document.getElementById('dashboardBadges').innerHTML = '<span class="badge">🏅 Streak Master</span>';
   document.getElementById('dashboardMotivation').textContent = 'Keep going! You are building great habits!';
   document.getElementById('dashboardSummary').textContent = 'Weekly/Monthly summaries coming soon!';
 }
+
+// --- Init ---
+renderHabits();
 updateDashboard();
 </script>
 
