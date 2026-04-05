@@ -9,6 +9,7 @@ import HabitPage from './pages/HabitPage';
 import DiaryPage from './pages/DiaryPage';
 import CalendarPage from './pages/CalendarPage';
 import Layout from './components/Layout';
+import LoadingPage from './components/LoadingPage';
 
 // 路由守衛元件：檢查是否登入
 const ProtectedRoute = ({ children }) => {
@@ -24,7 +25,7 @@ export default function App() {
 
     // 如果 Logto 還在確認登入狀態（例如重整網頁時），先顯示載入中
     if (isLoading) {
-        return <div className="text-center mt-20">系統載入中...</div>;
+        return <LoadingPage message='正在驗證登入資訊，請稍候...' />
     }
 
     return (

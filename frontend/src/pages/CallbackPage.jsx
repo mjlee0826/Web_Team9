@@ -1,5 +1,6 @@
 import { useHandleSignInCallback } from '@logto/react';
 import { useNavigate } from 'react-router-dom';
+import LoadingPage from '../components/LoadingPage';
 
 export default function CallbackPage() {
     const navigate = useNavigate();
@@ -11,11 +12,7 @@ export default function CallbackPage() {
     });
 
     if (isLoading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50">
-                <p className="text-lg text-gray-600 font-bold">正在驗證登入資訊，請稍候...</p>
-            </div>
-        );
+        return <LoadingPage message='正在驗證登入資訊，請稍候...' />
     }
 
     return null;

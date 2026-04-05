@@ -17,13 +17,12 @@ const AuthProvider = ({ children }) => {
         isAuthenticated, 
         isLoading: isLogtoLoading, 
         getAccessToken, 
-        fetchUserInfo,
+        getIdTokenClaims,
         signOut 
     } = useLogto();
 
     // --- Custom States ---
     const [user, setUser] = useState(null);
-    const [roles, setRoles] = useState([]);
     // isAuthReady is TRUE only when identity is confirmed AND data is fetched.
     const [isAuthReady, setIsAuthReady] = useState(false);
 
@@ -33,7 +32,6 @@ const AuthProvider = ({ children }) => {
      */
     const handleSecureSignOut = useCallback(async () => {
         setUser(null);
-        setRoles([]);
         setIsAuthReady(false);
         // Navigate the user to Logto's sign-out flow.
         await signOut(window.location.origin);
@@ -51,7 +49,6 @@ const AuthProvider = ({ children }) => {
             // If the user is not authenticated, reset states and finish.
             if (!isAuthenticated) {
                 setUser(null);
-                setRoles([]);
                 setIsAuthReady(true);
                 return;
             }
@@ -61,12 +58,13 @@ const AuthProvider = ({ children }) => {
                 // This forces Logto to refresh the token if it's expired.
                 // Replace 'YOUR_API_RESOURCE' with your actual API identifier from Logto console.
                 const token = await getAccessToken(import.meta.env.VITE_LOGTO_API_RESOURCE);
+                console.log(token)
                 
                 if (!token) throw new Error('Failed to obtain a valid access token');
 
                 // --- Step B: Fetch User Info & Roles ---
                 // You can fetch basic info from Logto, or call your own Express backend here.
-                const userInfo = await fetchUserInfo();
+                const userInfo = await getIdTokenClaims();
                 
                 // Example: Extract roles from custom data or a separate API call to your Express backend.
                 // const userRoles = await myExpressApi.getRoles(userInfo.sub);
@@ -86,14 +84,14 @@ const AuthProvider = ({ children }) => {
         };
 
         initializeAuth();
-    }, [isAuthenticated, isLogtoLoading, getAccessToken, fetchUserInfo, handleSecureSignOut]);
+    }, [isAuthenticated, isLogtoLoading, getAccessToken, getIdTokenClaims, handleSecureSignOut]);
 
     // Construct the context value object.
     const value = {
         user,
-        roles,
         isAuthenticated,
         // Combined loading state: still initializing SDK OR still fetching custom data.
+        getIdTokenClaims,
         isLoading: isLogtoLoading || !isAuthReady,
         signOut: handleSecureSignOut
     };
