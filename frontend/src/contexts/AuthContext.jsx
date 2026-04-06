@@ -1,19 +1,23 @@
+// frontend/src/contexts/AuthContext.js
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useLogto } from '@logto/react';
 
-// Create the Authentication Context to share state across the entire app hierarchy.
+/**
+ * AuthContext serves as the global single source of truth for 
+ * authentication state, user profiles, and access tokens.
+ */
 const AuthContext = createContext(null);
 
 /**
  * AuthProvider Component
- * This provider wraps the application and handles:
- * 1. Proactive Token Validation (The "Preemptive Check")
- * 2. Global User Data & Roles Management
- * 3. Synchronization between Logto and App State
+ * * This provider orchestrates the following:
+ * 1. Proactive Token Validation: Ensures the Access Token is valid upon app load.
+ * 2. User Profile Sync: Fetches ID Token claims (userInfo) after successful auth.
+ * 3. State Consolidation: Combines SDK loading states with custom data fetching states.
  */
 const AuthProvider = ({ children }) => {
-    // Extract core authentication tools and states from Logto React SDK.
-    const { 
+    // Destructure core tools and reactive states from Logto React SDK.
+    const {
         isAuthenticated, 
         isLoading: isLogtoLoading, 
         getAccessToken, 
@@ -21,32 +25,36 @@ const AuthProvider = ({ children }) => {
         signOut 
     } = useLogto();
 
-    // --- Custom States ---
+    // --- Custom Application States ---
+    
+    // 'user' holds the decoded JWT claims (e.g., sub, name, email).
     const [user, setUser] = useState(null);
-    // isAuthReady is TRUE only when identity is confirmed AND data is fetched.
+    
+    // 'isAuthReady' tracks whether our custom initialization (token check + profile fetch) is done.
     const [isAuthReady, setIsAuthReady] = useState(false);
 
     /**
-     * Helper: Clear all local states and log out.
-     * Use useCallback to maintain a stable function reference.
+     * handleSecureSignOut
+     * * Performs a clean logout by:
+     * 1. Wiping local application state.
+     * 2. Triggering the remote OIDC sign-out flow via Logto.
+     * * Wrapped in useCallback to ensure a stable function reference for child components.
      */
     const handleSecureSignOut = useCallback(async () => {
         setUser(null);
         setIsAuthReady(false);
-        // Navigate the user to Logto's sign-out flow.
+        // Redirects the browser to the Logto sign-out endpoint.
         await signOut(window.location.origin);
     }, [signOut]);
 
     /**
-     * Main Effect: Sync Identity and Fetch Data
-     * This effect runs when the authentication state changes.
+     * initializeAuth
+     * * An internal effect-driven function that synchronizes the SDK's 
+     * authentication state with our internal 'user' state.
      */
     useEffect(() => {
         const initializeAuth = async () => {
-            // Wait until Logto SDK has finished its internal initialization (reading storage).
-            if (isLogtoLoading) return;
-
-            // If the user is not authenticated, reset states and finish.
+            // Early exit if the user is not logged in.
             if (!isAuthenticated) {
                 setUser(null);
                 setIsAuthReady(true);
@@ -54,44 +62,45 @@ const AuthProvider = ({ children }) => {
             }
 
             try {
-                // --- Step A: Proactive Access Token Test ---
-                // This forces Logto to refresh the token if it's expired.
-                // Replace 'YOUR_API_RESOURCE' with your actual API identifier from Logto console.
+                // --- Step A: Access Token Verification ---
+                // We proactively call getAccessToken to ensure the token is valid/refreshable.
+                // This prevents silent failures when the app makes its first API call.
                 const token = await getAccessToken(import.meta.env.VITE_LOGTO_API_RESOURCE);
-                console.log(token)
                 
                 if (!token) throw new Error('Failed to obtain a valid access token');
 
-                // --- Step B: Fetch User Info & Roles ---
-                // You can fetch basic info from Logto, or call your own Express backend here.
+                // --- Step B: Identity Mapping ---
+                // Retrieve the user claims (profile info) from the ID Token.
                 const userInfo = await getIdTokenClaims();
-                
-                // Example: Extract roles from custom data or a separate API call to your Express backend.
-                // const userRoles = await myExpressApi.getRoles(userInfo.sub);
-                
                 setUser(userInfo);
-                // setRoles(userRoles);
 
-                console.log('✅ Auth successfully initialized for user:', userInfo.sub);
+                console.log('✅ AuthContext: Successfully initialized for user:', userInfo.sub);
             } catch (error) {
-                // If Token is invalid or Refresh Token has expired, force a clean sign-out.
-                console.error('❌ Authentication check failed. Forcing log out...', error);
+                // Critical failure: If we are 'authenticated' but cannot get a token, 
+                // the session is likely corrupted. Force a sign-out for safety.
+                console.error('❌ AuthContext: Initialization failed. Forcing logout...', error);
                 handleSecureSignOut();
             } finally {
-                // Mark the authentication process as completed.
+                // Notify the app that the authentication handshake is complete.
                 setIsAuthReady(true);
             }
         };
 
         initializeAuth();
-    }, [isAuthenticated, isLogtoLoading, getAccessToken, getIdTokenClaims, handleSecureSignOut]);
+        
+        // Note: We include getAccessToken and handleSecureSignOut to satisfy 
+        // the eslint-plugin-react-hooks, assuming they are stabilized by the SDK/useCallback.
+    }, [isAuthenticated, getIdTokenClaims, getAccessToken, handleSecureSignOut]);
 
-    // Construct the context value object.
+    /**
+     * The context value exposed to the rest of the application.
+     */
     const value = {
         user,
         isAuthenticated,
-        // Combined loading state: still initializing SDK OR still fetching custom data.
+        // Expose raw claims getter if components need fresh data.
         getIdTokenClaims,
+        // isLoading is true if EITHER the SDK is booting OR we are still syncing user data.
         isLoading: isLogtoLoading || !isAuthReady,
         signOut: handleSecureSignOut
     };
@@ -104,8 +113,11 @@ const AuthProvider = ({ children }) => {
 };
 
 /**
- * Custom Hook: useAuth
- * Provides an easy way for components to access authentication data.
+ * useAuth Custom Hook
+ * * Provides a convenient and type-safe way for functional components 
+ * to access the authentication context.
+ * * @returns {AuthContextValue} The authentication state and helper functions.
+ * @throws {Error} If used outside of an AuthProvider.
  */
 const useAuth = () => {
     const context = useContext(AuthContext);

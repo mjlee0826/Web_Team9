@@ -1,3 +1,4 @@
+// frontend/src/pages/LoginPage.jsx
 import React, { useEffect } from 'react';
 import { useLogto } from '@logto/react';
 import { useNavigate } from 'react-router-dom';
@@ -5,11 +6,22 @@ import { useAuth } from '../contexts/AuthContext';
 import LoadingPage from '../components/LoadingPage';
 import { Sparkles, ArrowRight, CheckCircle2, Activity, BookHeart, CalendarDays, Hexagon } from 'lucide-react';
 
+/**
+ * LoginPage Component
+ * * A high-fidelity landing page that doubles as the system entry point.
+ * Features a tech-minimalist design (Cyberpunk/Dark mode) with Glassmorphism 
+ * and terminal-style aesthetics.
+ */
 export default function LoginPage() {
     const { signIn } = useLogto();
     const navigate = useNavigate();
     const { isAuthenticated, isLoading } = useAuth();
 
+    /**
+     * Auto-Redirect Logic
+     * If the user is already authenticated, move them directly to the dashboard.
+     * We use { replace: true } to prevent the user from navigating back to the Login page.
+     */
     useEffect(() => {
         if (isLoading) return;
         if (isAuthenticated) {
@@ -17,54 +29,63 @@ export default function LoginPage() {
         }
     }, [isAuthenticated, isLoading, navigate]);
 
+    /**
+     * handleLogin
+     * Initiates the Logto OIDC sign-in flow.
+     * The callback URL must be registered in the Logto Admin Console.
+     */
     const handleLogin = () => {
         const redirectUrl = `${window.location.origin}/callback`;
         signIn(redirectUrl);
     };
 
+    /**
+     * Prevent "Flash of Content" (FOC)
+     * If already authenticated, show the LoadingPage while the useEffect redirect processes.
+     */
     if (isAuthenticated){
-        return <LoadingPage message='正在驗證登入資訊，請稍候...' />
+        return <LoadingPage message='Verifying credentials...' />
     }
 
+    // Core value propositions displayed on the landing page
     const features = [
         {
             icon: <CheckCircle2 size={20} className="text-cyan-400" />,
             title: 'Task Override',
-            desc: '模組化待辦清單，精準擊破目標'
+            desc: 'Modular task lists to dominate your objectives.'
         },
         {
             icon: <Activity size={20} className="text-cyan-400" />,
             title: 'Habit Tracking',
-            desc: '數據化日常軌跡，建立原子習慣'
+            desc: 'Quantify daily patterns to build atomic habits.'
         },
         {
             icon: <BookHeart size={20} className="text-cyan-400" />,
             title: 'Encrypted Diary',
-            desc: '私密思緒沉澱，保留生活原始碼'
+            desc: 'Preserve thoughts and life "source code" privately.'
         },
         {
             icon: <CalendarDays size={20} className="text-cyan-400" />,
             title: 'Timeline Sync',
-            desc: '全域排程同步，掌控絕對時間'
+            desc: 'Global scheduling to master absolute time.'
         }
     ];
 
     return (
-        // 外層：極致深色背景 (幾乎全黑)，帶有冷峻的科技感
         <div className="min-h-screen w-full flex flex-col md:flex-row bg-[#09090b] font-sans text-neutral-300 selection:bg-cyan-500/30">
             
-            {/* 左側：系統介紹區 */}
+            {/* --- Left Column: Value Proposition & Brand Intro --- */}
             <div className="relative flex-[1.2] flex flex-col justify-center p-12 lg:p-24 overflow-hidden border-r border-white/5">
                 
-                {/* 科技感背景：雷達網格底圖 */}
+                {/* Background Decor: Radar grid and radial glows for depth */}
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:32px_32px]"></div>
                 
-                {/* 科技感背景：冷光渲染 (Cyan & Indigo) */}
+                {/* Cold light atmospheric rendering (Cyan & Indigo glows) */}
                 <div className="absolute top-1/4 -left-20 w-[500px] h-[500px] bg-cyan-600/10 rounded-full blur-[120px] pointer-events-none"></div>
                 <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-indigo-600/10 rounded-full blur-[100px] pointer-events-none"></div>
 
                 <div className="relative z-10 max-w-xl">
-                    {/* 品牌標誌：帶有 Terminal 風格 */}
+                    {/* Brand Badge with Pulse Animation */}
                     <div className="flex items-center gap-3 mb-12">
                         <div className="relative flex items-center justify-center w-12 h-12 bg-white/5 border border-white/10 rounded-xl backdrop-blur-md">
                             <Hexagon size={24} className="text-cyan-400 absolute" />
@@ -76,7 +97,7 @@ export default function LoginPage() {
                         </div>
                     </div>
                     
-                    {/* 主標題：高對比白與漸層冷光 */}
+                    {/* Hero Headline: High-contrast typography with gradient highlights */}
                     <h2 className="text-5xl lg:text-6xl font-black mb-6 tracking-tight text-white leading-[1.1]">
                         Initialize Your <br />
                         <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">
@@ -84,10 +105,10 @@ export default function LoginPage() {
                         </span>
                     </h2>
                     <p className="text-lg text-neutral-400 mb-16 leading-relaxed max-w-md font-light">
-                        拒絕無序。在單一終端介面中，高度整合你的任務、習慣、記憶與時間軸。
+                        Eliminate chaos. Highly integrated terminal to manage tasks, habits, and memories in one unified interface.
                     </p>
 
-                    {/* 功能列表：玻璃面板風格 (Glassmorphism) */}
+                    {/* Features Grid: Glassmorphism effect applied to cards */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {features.map((feature, index) => (
                             <div key={index} className="group flex items-start gap-4 p-5 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] hover:border-white/10 transition-all duration-300 backdrop-blur-sm">
@@ -106,12 +127,12 @@ export default function LoginPage() {
                 </div>
             </div>
 
-            {/* 右側：登入區塊 */}
+            {/* --- Right Column: Authentication Portal --- */}
             <div className="relative flex-1 flex items-center justify-center p-8 bg-[#040405]">
-                {/* 登入卡片：極簡深色面板 */}
+                {/* Login Card: Ultra-dark minimalist panel */}
                 <div className="relative w-full max-w-[400px] p-10 rounded-[2rem] bg-[#09090b] border border-white/[0.08] shadow-2xl backdrop-blur-xl">
                     
-                    {/* 卡片頂部裝飾線 */}
+                    {/* Card Accent Line: Decorative gradient beam */}
                     <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent"></div>
 
                     <div className="text-center mb-10">
@@ -121,7 +142,7 @@ export default function LoginPage() {
                         </p>
                     </div>
                     
-                    {/* 帥氣的高反差按鈕：純白底黑字，這是目前國外極簡設計最流行的作法 */}
+                    {/* Primary Call to Action: High-contrast (Inverted) UI design */}
                     <button
                         onClick={handleLogin}
                         className="group relative w-full flex items-center justify-center gap-3 p-4 bg-white text-black rounded-xl font-bold text-base transition-all duration-300 hover:bg-neutral-200 hover:scale-[1.02] active:scale-[0.98]"

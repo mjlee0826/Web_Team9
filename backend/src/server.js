@@ -1,9 +1,5 @@
-// Load environment variables from the .env file into process.env.
-// This allows you to securely access configurations (like PORT or database passwords) without hardcoding them.
-require('dotenv').config();
-
 // Import the configured Express application instance from app.js.
-import app from './app';
+import app from './app.js';
 
 // Define the port number the server will run on.
 // It checks process.env.PORT first; if it is undefined (e.g., .env is missing), it defaults to 4000.

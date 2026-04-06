@@ -1,9 +1,9 @@
 // Import individual feature routers.
 // These files contain the specific endpoints (GET, POST, etc.) for each feature.
-import calendarRouter from "./calendarRoutes";
-import diaryRouter from "./diaryRoutes";
-import habitRouter from "./habitRoutes";
-import todoRouter from "./todoRoutes";
+import calendarRouter from "./calendarRoutes.js";
+import diaryRouter from "./diaryRoutes.js";
+import habitRouter from "./habitRoutes.js";
+import todoRouter from "./todoRoutes.js";
 
 // Import the Router factory function from the Express framework.
 import { Router } from "express";
