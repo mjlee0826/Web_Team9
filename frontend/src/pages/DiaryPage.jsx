@@ -1,48 +1,71 @@
 import React, { useEffect, useState } from 'react'
+import { useLogto } from '@logto/react'
 import './DiaryPage.css'
+import * as diaryApi from '../services/diaryApi'
 
 export default function DiaryPage() {
+    const { getAccessToken } = useLogto()
     const [title, setTitle] = useState('')
     const [content, setContent] = useState('')
     const [dateDisplay, setDateDisplay] = useState('載入中...')
+    const [history, setHistory] = useState([])
+    const [isLoading, setIsLoading] = useState(true)
 
-    const [history, setHistory] = useState([
-        {
-            date: '2026.03.12',
-            title: '台北的小雨',
-            content: '今天在街角那間咖啡廳坐了一下午，雨聲配上爵士樂真的很有氛圍...',
-        },
-        {
-            date: '2026.03.10',
-            title: '終於完成專案了！',
-            content: '這三個月的努力沒有白費，雖然過程很辛苦，但看到成果那刻真的...',
-        },
-    ])
+    const formatDateForStorage = (d) => {
+        const y = d.getFullYear()
+        const m = String(d.getMonth() + 1).padStart(2, '0')
+        const day = String(d.getDate()).padStart(2, '0')
+        return `${y}-${m}-${day}`
+    }
+
+    const formatDateForDisplay = (dateStr) => {
+        const [y, m, d] = dateStr.split('-')
+        return `${y}.${Number(m)}.${Number(d)}`
+    }
+
+    const loadDiaries = async () => {
+        setIsLoading(true)
+        try {
+            const token = await getAccessToken(import.meta.env.VITE_LOGTO_API_RESOURCE)
+            const entries = await diaryApi.fetchDiaries(token)
+            setHistory(entries)
+        } catch (error) {
+            console.error('讀取日記失敗：', error)
+            alert('讀取日記失敗，請稍後再試')
+        } finally {
+            setIsLoading(false)
+        }
+    }
 
     useEffect(() => {
         const today = new Date()
         setDateDisplay(`${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日`)
+        loadDiaries()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
-    function handleSave() {
+    async function handleSave() {
         if (title.trim() === '' || content.trim() === '') {
             alert('請輸入標題與內容')
             return
         }
 
-        const now = new Date()
-        const dateString = `${now.getFullYear()}.${now.getMonth() + 1}.${now.getDate()}`
+        try {
+            const token = await getAccessToken(import.meta.env.VITE_LOGTO_API_RESOURCE)
+            await diaryApi.createDiary(token, {
+                date: formatDateForStorage(new Date()),
+                title: title.trim(),
+                content: content.trim(),
+            })
 
-        const newEntry = {
-            date: dateString,
-            title: title,
-            content: content,
+            await loadDiaries()
+            setTitle('')
+            setContent('')
+            console.log('日記已儲存！')
+        } catch (error) {
+            console.error('儲存日記失敗：', error)
+            alert('儲存失敗，請稍後再試')
         }
-
-        setHistory(prev => [newEntry, ...prev])
-        setTitle('')
-        setContent('')
-        console.log('日記已儲存！')
     }
 
     function handleReadMore(entry) {
@@ -86,9 +109,11 @@ export default function DiaryPage() {
                 <section className="history-section">
                     <h3>過往點滴</h3>
                     <div className="history-grid">
+                        {isLoading && <p>日記載入中...</p>}
+                        {!isLoading && history.length === 0 && <p>目前還沒有日記，寫下第一篇吧！</p>}
                         {history.map((h, idx) => (
                             <article className="diary-card" key={idx}>
-                                <div className="card-date">{h.date}</div>
+                                <div className="card-date">{formatDateForDisplay(h.date)}</div>
                                 <h4>{h.title}</h4>
                                 <p>{h.content}</p>
                                 <button className="read-more" onClick={() => handleReadMore(h)}>
