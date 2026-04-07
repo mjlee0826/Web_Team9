@@ -1,0 +1,51 @@
+本週技術實踐：從 UI 邁向全端系統整合
+本週專案從前端 UI 延伸至後端實作，重點在於建立完整的全端資料流與 API 架構。透過大量 Debug 實踐，深入理解 Node.js/Express 的運作機制。
+
+後端架構與 RESTful API 設計
+1. Express 分層架構 (SCR Pattern)
+
+為提升系統的可維護性，將邏輯從單一檔案拆解為模組化設計：
+
+Service 層：專注商業邏輯與資料操作（目前採用 In-memory mock data）。
+
+Controller 層：負責處理 HTTP 請求與回應（Request/Response），管理 Status Code。
+
+Route 層：定義 RESTful 路由路徑，串接對應的 Middleware。
+
+2. RESTful 規範與資料流實作
+
+實作標準 Todo API（GET / POST / DELETE），並完整掌握以下流程：
+
+資料流向圖：Frontend → Route → Controller → Service → Data
+
+HTTP 語義化：精確應用 Method 與 Status Code（如 201 Created, 404 Not Found）。
+
+JSON 結構：定義統一的後端 Response 格式。
+
+安全機制與驗證流程 (Auth)
+本週重點研究了 Logto OIDC 與 JWT 驗證 機制，並將其整合至後端 Pipeline。
+
+Middleware 機制：實作 requireAuth 作為 API Gatekeeper。
+
+非同步驗證：理解 JWT 驗證並非單純本地計算，需透過 jose 套件取得遠端 JWKS (JSON Web Key Set)。
+
+環境變數管理：體會到 .env 設定對系統穩定性的關鍵影響（配置錯誤將導致初始化崩潰）。
+
+開發策略：採用 Bypass Auth 模式，優先打通功能 Flow，待系統穩定後再掛載安全性驗證。
+
+系統除錯與執行流程理解 (Debugging)
+透過排除錯誤，更深刻地理解了 Node.js 的底層行為：
+
+模組系統：解決 ESM 路徑與 import/export 的對應問題。
+
+初始化順序：修正 Middleware 與 Route 掛載先後順序對請求處理的影響。
+
+錯誤分類診斷：
+
+Cannot GET /：路由定義失效。
+
+ERR_MODULE_NOT_FOUND：路徑指向錯誤。
+
+Invalid URL：環境變數遺漏。
+
+情境分辨：能區分「Request 掛起（未回傳）」與「Server Crash（程序崩潰）」的根本差異。
