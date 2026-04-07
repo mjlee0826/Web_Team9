@@ -4,13 +4,43 @@
  * This file is responsible for initializing the Express instance,
  * configuring global middlewares, and mounting the root router.
  */
+import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+dotenv.config({
+  path: path.resolve(__dirname, "../.env"),
+});
+console.log("🔥 ENV:", process.env.LOGTO_ENDPOINT);
 
 import express from 'express';
 import cors from 'cors';
 import router from './routes/index.js';
+import todoRoutes from "./routes/todoRoutes.js";
 
-// Initialize the Express application instance
+// ✅ 先建立 app
 const app = express();
+
+// ==========================================
+// 1. Global Middlewares
+// ==========================================
+
+app.use(cors());
+app.use(express.json());
+
+// ==========================================
+// 2. Routes
+// ==========================================
+
+// ✅ 再掛 routes（順序很重要！）
+app.use("/api/todos", todoRoutes);
+
+app.use('/', router);
+app.get("/", (req, res) => {
+  res.send("OK");
+});
 
 // ==========================================
 // 1. Global Middlewares Configuration

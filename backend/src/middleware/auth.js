@@ -1,3 +1,4 @@
+console.log("LOGTO_ENDPOINT:", process.env.LOGTO_ENDPOINT);
 // backend/src/middleware/auth.js
 import { createRemoteJWKSet, jwtVerify, decodeJwt } from "jose";
 

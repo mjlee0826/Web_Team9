@@ -1,8 +1,19 @@
-const express = require('express');
+// todoRoutes.js
+
+import express from "express";
+import {
+  getTodos,
+  addTodo,
+  toggle,
+  remove,
+} from "../controllers/todoController.js";
+
+// ⚠️ 這裡先「暫時不要用 auth middleware」（不然你現在會炸）
 const router = express.Router();
-const todoController = require('./todo.controller');
 
-// 當收到 POST /api/tasks 時，交給 controller 的 createTask 函式
-router.post('/tasks', todoController.createTask);
+router.get("/", getTodos);
+router.post("/", addTodo);
+router.patch("/:id", toggle);
+router.delete("/:id", remove);
 
-module.exports = router;
+export default router;

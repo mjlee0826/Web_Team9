@@ -1,9 +1,35 @@
-const Task = require('./todo.model'); // 假設你有定義 Mongoose Model
+// todoService.js
+console.log("🔥 NEW VERSION SERVICE");
+let todos = [];
 
-exports.createTodo = async (data) => {
-  // 可以在這裡寫邏輯，例如：如果標題重複就拋出錯誤
-  if (!data.title) throw new Error('標題是必填的');
-  
-  const todo = new Task(data);
-  return await todo.save(); // 與資料庫互動
+export const getTodosByUser = (userId) => {
+  return todos.filter((t) => t.userId === userId);
+};
+
+export const createTodo = (userId, text) => {
+  const newTodo = {
+    id: Date.now(),
+    userId,
+    text,
+    completed: false,
+  };
+
+  todos.push(newTodo);
+  return newTodo;
+};
+
+export const toggleTodo = (id, userId) => {
+  const todo = todos.find((t) => t.id === id && t.userId === userId);
+  if (!todo) return null;
+
+  todo.completed = !todo.completed;
+  return todo;
+};
+
+export const deleteTodo = (id, userId) => {
+  const index = todos.findIndex((t) => t.id === id && t.userId === userId);
+  if (index === -1) return false;
+
+  todos.splice(index, 1);
+  return true;
 };
