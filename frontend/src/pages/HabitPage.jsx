@@ -1,14 +1,14 @@
 import React, { useState, useRef, useEffect } from "react";
+import { useAuth } from "../contexts/AuthContext";
+import { useLogto } from '@logto/react'
+import * as habitApi from "../services/habitApi";
 
 function classNames(...classes) {
     return classes.filter(Boolean).join(" ");
 }
 
-const initialHabits = [
-    { id: 1, title: "Drink water", type: "number", goal: 10, unit: "glasses", todayValue: 3, streak: 2, completedToday: false, goalPeriod: "day" },
-    { id: 2, title: "Exercise", type: "number", goal: 2, unit: "hours", todayValue: 1, streak: 1, completedToday: false, goalPeriod: "day" },
-    { id: 3, title: "Journal", type: "checkbox", unit: "", todayValue: false, streak: 0, completedToday: false, goalPeriod: "day" },
-];
+// 初始為空，資料由 API 載入
+const initialHabits = [];
 
 function HabitCard({ habit, onEdit, onMarkComplete, onQuickAdd, onUpdate }) {
     return (
@@ -118,7 +118,10 @@ function HabitCard({ habit, onEdit, onMarkComplete, onQuickAdd, onUpdate }) {
     );
 }
 
+
 function HabitTracker() {
+    const { getAccessToken } = useLogto();
+    const { isAuthenticated, isLoading, getIdTokenClaims } = useAuth();
     const [habits, setHabits] = useState(initialHabits);
     const [modalOpen, setModalOpen] = useState(false);
     const [editMode, setEditMode] = useState(false);
@@ -132,8 +135,27 @@ function HabitTracker() {
         goalPeriod: "day",
     });
     const habitTitleRef = useRef(null);
+    const [loading, setLoading] = useState(false);
 
-    // --- Modal open/close ---
+    // 載入習慣資料
+    useEffect(() => {
+        if (!isAuthenticated) return;
+        setLoading(true);
+        (async () => {
+            try {
+                const token = await getAccessToken(import.meta.env.VITE_LOGTO_API_RESOURCE);
+                const data = await habitApi.fetchHabits(token);
+                setHabits(data);
+            } catch (e) {
+                console.error('Failed to save habit:', e);
+                alert('保存失敗: ' + (e.message || e));
+            } finally {
+                setLoading(false);
+            }
+        })();
+    }, [isAuthenticated, getIdTokenClaims]);
+
+    // Modal 開關
     const openModal = (edit = false, habit = null) => {
         setModalOpen(true);
         setEditMode(edit);
@@ -159,119 +181,108 @@ function HabitTracker() {
         setEditHabitId(null);
     };
 
-    // --- Habit logic ---
-    const markHabitComplete = (id) => {
-        setHabits((prev) =>
-            prev.map((habit) => {
-                if (habit.id !== id) return habit;
-                if (!habit.completedToday) {
-                    return {
-                        ...habit,
-                        todayValue: true,
-                        completedToday: true,
-                        streak: (habit.streak || 0) + 1,
-                    };
-                } else {
-                    return {
-                        ...habit,
-                        todayValue: habit.type === "checkbox" ? false : 0,
-                        completedToday: false,
-                        streak: 0,
-                    };
-                }
-            })
-        );
-    };
-
-    const updateHabit = (id, value) => {
-        setHabits((prev) =>
-            prev.map((habit) => {
-                if (habit.id !== id) return habit;
-                if (habit.type === "number") {
-                    const todayValue = Number(value);
-                    return {
-                        ...habit,
-                        todayValue,
-                        completedToday: todayValue >= (habit.goal || 0),
-                        streak: todayValue >= (habit.goal || 0) ? (habit.streak || 0) + 1 : 0,
-                    };
-                } else {
-                    const todayValue = value === true || value === "true";
-                    return {
-                        ...habit,
-                        todayValue,
-                        completedToday: todayValue,
-                        streak: todayValue ? (habit.streak || 0) + 1 : 0,
-                    };
-                }
-            })
-        );
-    };
-
-    const quickAdd = (id, amount) => {
-        setHabits((prev) =>
-            prev.map((habit) => {
-                if (habit.id !== id) return habit;
-                const todayValue = Number(habit.todayValue || 0) + amount;
-                return {
-                    ...habit,
-                    todayValue,
-                    completedToday: todayValue >= (habit.goal || 0),
-                    streak: todayValue >= (habit.goal || 0) ? (habit.streak || 0) + 1 : 0,
-                };
-            })
-        );
-    };
-
-    const saveHabit = () => {
+    // 新增/編輯習慣
+    const saveHabit = async () => {
         const title = form.title.trim();
         if (!title) return;
         const unit = selectedType === "number" ? form.unit.trim() : "";
         const goal = Number(form.goal) || 0;
         const goalPeriod = form.goalPeriod;
-        if (editMode && editHabitId !== null) {
-            setHabits((prev) =>
-                prev.map((habit) =>
-                    habit.id === editHabitId
-                        ? {
-                                ...habit,
-                                title,
-                                type: selectedType,
-                                unit,
-                                goal,
-                                goalPeriod,
-                                todayValue: selectedType === "checkbox" ? false : 0,
-                                completedToday: false,
-                            }
-                        : habit
-                )
-            );
-        } else {
-            setHabits((prev) => [
-                ...prev,
-                {
-                    id: Date.now(),
-                    title,
-                    type: selectedType,
-                    unit,
-                    goal,
-                    goalPeriod,
-                    todayValue: selectedType === "checkbox" ? false : 0,
-                    streak: 0,
-                    completedToday: false,
-                },
-            ]);
+        const token = await getAccessToken(import.meta.env.VITE_LOGTO_API_RESOURCE);
+        try {
+            if (editMode && editHabitId !== null) {
+                const updated = await habitApi.updateHabit(token, editHabitId, {
+                    title, type: selectedType, unit, goal, goalPeriod
+                });
+                setHabits((prev) => prev.map(h => h.id === editHabitId ? updated : h));
+            } else {
+                const created = await habitApi.createHabit(token, {
+                    title, type: selectedType, unit, goal, goalPeriod
+                });
+                setHabits((prev) => [...prev, created]);
+            }
+            closeModal();
+        } catch (e) {
+            console.error('Failed to save habit:', e);
+            alert('保存失敗: ' + (e.message || e));
         }
-        closeModal();
     };
 
-    // --- Modal type select ---
+    // 完成/取消完成
+    const markHabitComplete = async (id) => {
+        const habit = habits.find(h => h.id === id);
+        if (!habit) return;
+        const token = await getAccessToken(import.meta.env.VITE_LOGTO_API_RESOURCE);
+        try {
+            const updated = await habitApi.updateHabit(token, id, {
+                completedToday: !habit.completedToday,
+                todayValue: habit.type === "checkbox" ? !habit.completedToday : habit.todayValue,
+                streak: !habit.completedToday ? (habit.streak || 0) + 1 : 0,
+            });
+            setHabits((prev) => prev.map(h => h.id === id ? updated : h));
+        } catch (e) {
+            console.error('Failed to save habit:', e);
+            alert('保存失敗: ' + (e.message || e));
+        }
+    };
+
+    // 數值型習慣調整
+    const updateHabitValue = async (id, value) => {
+        const habit = habits.find(h => h.id === id);
+        if (!habit) return;
+        const todayValue = Number(value);
+        const completedToday = todayValue >= (habit.goal || 0);
+        const streak = completedToday ? (habit.streak || 0) + 1 : 0;
+        const token = await getAccessToken(import.meta.env.VITE_LOGTO_API_RESOURCE);
+        try {
+            const updated = await habitApi.updateHabit(token, id, {
+                todayValue, completedToday, streak
+            });
+            setHabits((prev) => prev.map(h => h.id === id ? updated : h));
+        } catch (e) {
+            console.error('Failed to save habit:', e);
+            alert('保存失敗: ' + (e.message || e));
+        }
+    };
+
+    // 快速加減
+    const quickAdd = async (id, amount) => {
+        const habit = habits.find(h => h.id === id);
+        if (!habit) return;
+        const todayValue = Number(habit.todayValue || 0) + amount;
+        const completedToday = todayValue >= (habit.goal || 0);
+        const streak = completedToday ? (habit.streak || 0) + 1 : 0;
+        const token = await getAccessToken(import.meta.env.VITE_LOGTO_API_RESOURCE);
+        try {
+            const updated = await habitApi.updateHabit(token, id, {
+                todayValue, completedToday, streak
+            });
+            setHabits((prev) => prev.map(h => h.id === id ? updated : h));
+        } catch (e) {
+            console.error('Failed to save habit:', e);
+            alert('保存失敗: ' + (e.message || e));
+        }
+    };
+
+    // 刪除習慣
+    const deleteHabit = async (id) => {
+        const token = await getAccessToken(import.meta.env.VITE_LOGTO_API_RESOURCE);
+        try {
+            await habitApi.deleteHabit(token, id);
+            setHabits((prev) => prev.filter(h => h.id !== id));
+        } catch (e) {
+            console.error('Failed to save habit:', e);
+            alert('保存失敗: ' + (e.message || e));
+        }
+    };
+
+    // Modal type select
     const selectType = (type) => {
         setSelectedType(type);
         setForm((f) => ({ ...f, type }));
     };
 
-    // --- Modal keyboard shortcuts ---
+    // Modal keyboard shortcuts
     useEffect(() => {
         const handler = (e) => {
             if (!modalOpen) return;
@@ -447,7 +458,7 @@ function HabitTracker() {
                                 onEdit={() => openModal(true, habit)}
                                 onMarkComplete={() => markHabitComplete(habit.id)}
                                 onQuickAdd={quickAdd}
-                                onUpdate={updateHabit}
+                                onUpdate={updateHabitValue}
                             />
                         ))}
                     </div>
@@ -464,7 +475,7 @@ function HabitTracker() {
                                 onEdit={() => openModal(true, habit)}
                                 onMarkComplete={() => markHabitComplete(habit.id)}
                                 onQuickAdd={quickAdd}
-                                onUpdate={updateHabit}
+                                onUpdate={updateHabitValue}
                             />
                         ))}
                     </div>
