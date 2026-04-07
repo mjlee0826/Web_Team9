@@ -1,61 +1,46 @@
-// todoController.js
+// src/controllers/todoController.js
+import { todoService } from '../services/todoService.js';
 
-import {
-  getTodosByUser,
-  createTodo,
-  toggleTodo,   
-  deleteTodo,
-} from "../services/todoService.js";
+export const todoController = {
+  getTodos: async (req, res) => {
+    try {
+      const userId = req.user.sub; // 從 Auth 中間件取得
+      const data = await todoService.getAll(userId);
+      res.status(200).json(data);
+    } catch (err) {
+      res.status(500).json({ error: '讀取失敗' });
+    }
+  },
 
-export const getTodos = (req, res) => {
-  const userId = req.user?.sub;
+  createTodo: async (req, res) => {
+    try {
+      const userId = req.user.sub;
+      const newTodo = await todoService.create(userId, req.body);
+      res.status(201).json(newTodo);
+    } catch (err) {
+      res.status(400).json({ error: '新增失敗' });
+    }
+  },
 
-  if (!userId) {
-    return res.status(401).json({ error: "Unauthorized" });
+  updateTodo: async (req, res) => {
+    try {
+      const userId = req.user.sub;
+      const updated = await todoService.update(userId, req.params.id, req.body);
+      if (!updated) return res.status(404).json({ error: '找不到任務' });
+      res.status(200).json(updated);
+    } catch (err) {
+      res.status(400).json({ error: '更新失敗' });
+    }
+  },
+
+  deleteTodo: async (req, res) => {
+    try {
+      const userId = req.user.sub;
+      const success = await todoService.delete(userId, req.params.id);
+      if (!success) return res.status(404).json({ error: '找不到任務' });
+      res.status(200).json({ message: '刪除成功' });
+    } catch (err) {
+      res.status(500).json({ error: '刪除失敗' });
+    }
   }
-
-  const todos = getTodosByUser(userId);
-  res.json(todos);
-};
-
-export const addTodo = (req, res) => {
-  const userId = req.user?.sub;
-  const { text } = req.body;
-
-  if (!userId) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-
-  if (!text) {
-    return res.status(400).json({ error: "Text is required" });
-  }
-
-  const todo = createTodo(userId, text);
-  res.status(201).json(todo);
-};
-
-export const toggle = (req, res) => {
-  const userId = req.user?.sub;
-  const id = Number(req.params.id);
-
-  const updated = toggleTodo(id, userId);
-
-  if (!updated) {
-    return res.status(404).json({ error: "Todo not found" });
-  }
-
-  res.json(updated);
-};
-
-export const remove = (req, res) => {
-  const userId = req.user?.sub;
-  const id = Number(req.params.id);
-
-  const success = deleteTodo(id, userId);
-
-  if (!success) {
-    return res.status(404).json({ error: "Todo not found" });
-  }
-
-  res.json({ success: true });
 };
