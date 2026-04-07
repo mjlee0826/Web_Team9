@@ -1,17 +1,8 @@
-// src/routes/todoRoutes.js
-import { Router } from 'express';
-import { todoController } from '../controllers/todoController.js';
-import { requireAuth } from '../middleware/auth.js';
+const express = require('express');
+const router = express.Router();
+const todoController = require('./todo.controller');
 
-const router = Router();
+// 當收到 POST /api/tasks 時，交給 controller 的 createTask 函式
+router.post('/tasks', todoController.createTask);
 
-// 應用中間件：所有 Todo 操作皆須登入
-router.use(requireAuth);
-
-// 定義 RESTful 路徑
-router.get('/', todoController.getTodos);           // GET /api/todos
-router.post('/', todoController.createTodo);        // POST /api/todos
-router.patch('/:id', todoController.updateTodo);    // PATCH /api/todos/:id
-router.delete('/:id', todoController.deleteTodo);   // DELETE /api/todos/:id
-
-export default router;
+module.exports = router;

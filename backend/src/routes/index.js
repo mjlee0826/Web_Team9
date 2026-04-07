@@ -3,7 +3,7 @@
 import calendarRouter from "./calendarRoutes.js";
 import diaryRouter from "./diaryRoutes.js";
 import habitRouter from "./habitRoutes.js";
-import todoRouter from "./todoRoutes.js";
+// import todoRouter from "./todoRoutes.js";
 
 // Import the Router factory function from the Express framework.
 import { Router } from "express";
@@ -18,7 +18,7 @@ const router = Router();
 router.use('/api/calendar', calendarRouter);
 router.use('/api/diary', diaryRouter);
 router.use('/api/habit', habitRouter);
-router.use('/api/todo', todoRouter);
+// router.use('/api/todo', todoRouter);
 
 // Export this main router so it can be imported and mounted in your main app.js file 
 // (e.g., app.use('/', router);).
