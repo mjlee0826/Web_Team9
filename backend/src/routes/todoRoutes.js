@@ -1,8 +1,7 @@
-const express = require('express');
+import express from 'express';
+
 const router = express.Router();
-const todoController = require('./todo.controller');
 
-// 當收到 POST /api/tasks 時，交給 controller 的 createTask 函式
-router.post('/tasks', todoController.createTask);
+// TODO: 冠
 
-module.exports = router;
+export default router;
