@@ -1,8 +1,16 @@
-const express = require('express');
-const router = express.Router();
-const todoController = require('./todo.controller');
+// src/routes/todoRoutes.js
+import { Router } from 'express';
+import { todoController } from '../controllers/todoController.js';
+import { requireAuth } from '../middleware/auth.js';
 
-// 當收到 POST /api/tasks 時，交給 controller 的 createTask 函式
-router.post('/tasks', todoController.createTask);
+const router = Router();
 
-module.exports = router;
+// 確保所有路徑都受到 Logto 驗證保護
+router.use(requireAuth);
+
+router.get('/', todoController.getTodos);
+router.post('/', todoController.createTodo);
+router.patch('/:id', todoController.updateTodo);
+router.delete('/:id', todoController.deleteTodo);
+
+export default router;
