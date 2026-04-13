@@ -1,0 +1,13 @@
+model Event {
+    id        String   @id @default(uuid()) // 讓 Postgres 自動產生 UUID
+    userId    String   // 綁定 Logto 的 user.sub
+    title     String
+    time      String?  // 加上 ? 代表允許為空 (Optional)
+    type      String   @default("task")
+    dateStr   String   // 用來存 YYYY-MM-DD
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    // 建立複合索引：因為我們最常「查詢某個使用者的所有事件」，這能大幅加快查詢速度
+    @@index([userId])
+}

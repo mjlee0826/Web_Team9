@@ -1,73 +1,57 @@
 // backend/src/services/calendarService.js
+import prisma from '../utils/prismaClient.js';
 
-/**
- * Temporary In-memory Database
- * Structure: 
- * { 
- * "userId": { 
- * "YYYY-MM-DD": [
- * { id: "string", title: "string", time: "string", type: "string" }
- * ] 
- * } 
- * }
- * Note: Data will be lost when the server restarts.
- */
-const mockDatabase = {};
-
-/**
- * Retrieve all events associated with a specific user.
- * If the user doesn't exist in the database yet, initialize an empty object for them.
- * * @param {string} userId - The unique identifier of the user (from JWT 'sub' claim).
- * @returns {Promise<Object>} A dictionary of events keyed by date strings.
- */
+// 取得特定月份/日期的事件
 const getEventsByUser = async (userId) => {
-    if (!mockDatabase[userId]) {
-        // Initialize a new entry for first-time users
-        mockDatabase[userId] = {}; 
-    }
-    return mockDatabase[userId];
+    // 從 Postgres 撈出該使用者的所有事件
+    const events = await prisma.event.findMany({
+        where: { userId: userId },
+        orderBy: { time: 'asc' } // 依照時間排序
+    });
+
+    // 為了配合前端原本的結構 { "2026-04-10": [...] }，我們在後端做資料轉換
+    const groupedEvents = {};
+    events.forEach(event => {
+        if (!groupedEvents[event.dateStr]) {
+            groupedEvents[event.dateStr] = [];
+        }
+        groupedEvents[event.dateStr].push(event);
+    });
+
+    return groupedEvents;
 };
 
-/**
- * Add a new event to a specific date for a user.
- * * @param {string} userId - The unique identifier of the user.
- * @param {string} date - The date string (YYYY-MM-DD).
- * @param {Object} eventData - Object containing title, time, and type.
- * @returns {Promise<Object>} The newly created event object with a generated ID.
- */
-const addEvent = async (userId, date, eventData) => {
-    // Ensure the user and date arrays exist
-    if (!mockDatabase[userId]) mockDatabase[userId] = {};
-    if (!mockDatabase[userId][date]) mockDatabase[userId][date] = [];
-
-    const newEvent = {
-        // Use current timestamp as a simple unique ID for mock purposes
-        id: Date.now().toString(), 
-        ...eventData
-    };
-
-    mockDatabase[userId][date].push(newEvent);
+// 新增事件
+const addEvent = async (userId, dateStr, eventData) => {
+    const newEvent = await prisma.event.create({
+        data: {
+            userId: userId,
+            dateStr: dateStr,
+            title: eventData.title,
+            time: eventData.time || null,
+            type: eventData.type || 'task'
+        }
+    });
     return newEvent;
 };
 
-/**
- * Delete a specific event from a user's calendar.
- * * @param {string} userId - The unique identifier of the user.
- * @param {string} date - The date string (YYYY-MM-DD).
- * @param {string} eventId - The ID of the event to be removed.
- * @returns {Promise<boolean>} True if an event was deleted, false otherwise.
- */
-const deleteEvent = async (userId, date, eventId) => {
-    // Check if the user and date exist before attempting deletion
-    if (!mockDatabase[userId] || !mockDatabase[userId][date]) return false;
-
-    const originalLength = mockDatabase[userId][date].length;
-    
-    // Filter out the event with the matching ID
-    mockDatabase[userId][date] = mockDatabase[userId][date].filter(ev => ev.id !== eventId);
-    
-    // If the array length has decreased, the deletion was successful
-    return mockDatabase[userId][date].length < originalLength;
+// 刪除事件
+const deleteEvent = async (userId, dateStr, eventId) => {
+    try {
+        // 使用 deleteMany 可以確保即使找不到也不會報錯，且能限制只能刪除自己的任務
+        const result = await prisma.event.deleteMany({
+            where: {
+                id: eventId,
+                userId: userId, // 安全機制：只能刪除自己的
+                dateStr: dateStr
+            }
+        });
+        
+        return result.count > 0; // 如果 count > 0 代表成功刪除
+    } catch (error) {
+        console.error("Delete event error:", error);
+        return false;
+    }
 };
 
 export { getEventsByUser, addEvent, deleteEvent }
