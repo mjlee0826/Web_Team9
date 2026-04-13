@@ -1,0 +1,12 @@
+model DiaryEntry {
+    id        String   @id @default(uuid())
+    userId    String
+    dateStr   String   // YYYY-MM-DD
+    title     String
+    content   String
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([userId])
+    @@index([userId, dateStr])
+}
