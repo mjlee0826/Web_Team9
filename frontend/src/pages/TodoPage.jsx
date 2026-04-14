@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { useLogto } from '@logto/react';
+import * as todoApi from '../services/todoApi';
 
 export default function TaskMatrixPage() {
+  const { getAccessToken } = useLogto();
+
   // --- 狀態管理 ---
-  const [tasks, setTasks] = useState([
-    { id: 1, title: '修復登入頁面 bug', q: 'q1', date: '2026-03-18', tags: ['工程'], done: false },
-    { id: 2, title: '準備季度報告', q: 'q2', date: '2026-03-25', tags: ['管理'], done: false },
-    { id: 3, title: '回覆重要 Slack 訊息', q: 'q3', date: '', tags: [], done: false },
-    { id: 4, title: '整理桌面資料夾', q: 'q4', date: '', tags: ['雜事'], done: false },
-  ]);
+  const [tasks, setTasks] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [allTags, setAllTags] = useState(['工程', '管理', '策略', '雜事', '設計', '行銷']);
   const [activeFilter, setActiveFilter] = useState('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -19,7 +19,27 @@ export default function TaskMatrixPage() {
     date: '',
     tags: []
   });
-  const [customTag, setCustomTag] = useState('');
+
+  // --- 初始化載入資料 ---
+  const loadTodos = async () => {
+    setIsLoading(true);
+    try {
+      const token = await getAccessToken(import.meta.env.VITE_LOGTO_API_RESOURCE);
+      const data = await todoApi.fetchTodos(token);
+      // 將後端的 _id 對應為前端習慣的 id 屬性
+      const formattedTasks = data.map(t => ({ ...t, id: t._id }));
+      setTasks(formattedTasks);
+    } catch (err) {
+      console.error("Failed to load todos:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadTodos();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // --- 輔助函式：日期標籤 ---
   const getDateLabel = (d) => {
@@ -34,24 +54,45 @@ export default function TaskMatrixPage() {
   };
 
   // --- 邏輯處理 ---
-  const toggleDone = (id) => {
+  const toggleDone = async (id) => {
+    const taskToUpdate = tasks.find(t => t.id === id);
+    if (!taskToUpdate) return;
+
+    // 樂觀更新 (Optimistic Update)，先改畫面體驗比較好
     setTasks(prev => prev.map(t => t.id === id ? { ...t, done: !t.done } : t));
+
+    try {
+      const token = await getAccessToken(import.meta.env.VITE_LOGTO_API_RESOURCE);
+      await todoApi.updateTodo(token, id, { done: !taskToUpdate.done });
+    } catch (err) {
+      console.error("Failed to update task:", err);
+      // 如果失敗則還原狀態
+      setTasks(prev => prev.map(t => t.id === id ? { ...t, done: taskToUpdate.done } : t));
+    }
   };
 
-  const deleteTask = (id) => {
-    setTasks(prev => prev.filter(t => t.id !== id));
+  const deleteTask = async (id) => {
+    if (!window.confirm("確定要刪除此任務嗎？")) return;
+    try {
+      const token = await getAccessToken(import.meta.env.VITE_LOGTO_API_RESOURCE);
+      await todoApi.deleteTodo(token, id);
+      setTasks(prev => prev.filter(t => t.id !== id));
+    } catch (err) {
+      console.error("Failed to delete task:", err);
+    }
   };
 
-  const handleSaveTask = () => {
+  const handleSaveTask = async () => {
     if (!newTask.title.trim()) return;
-    const taskToAdd = {
-      ...newTask,
-      id: Date.now(),
-      done: false
-    };
-    setTasks(prev => [...prev, taskToAdd]);
-    setIsModalOpen(false);
-    setNewTask({ title: '', q: 'q1', date: '', tags: [] });
+    try {
+      const token = await getAccessToken(import.meta.env.VITE_LOGTO_API_RESOURCE);
+      const created = await todoApi.createTodo(token, newTask);
+      setTasks(prev => [...prev, { ...created, id: created._id }]);
+      setIsModalOpen(false);
+      setNewTask({ title: '', q: 'q1', date: '', tags: [] });
+    } catch (err) {
+      console.error("Failed to create task:", err);
+    }
   };
 
   const toggleTagInNewTask = (tag) => {
@@ -81,7 +122,9 @@ export default function TaskMatrixPage() {
           </span>
         </div>
         
-        {filteredTasks.length === 0 ? (
+        {isLoading ? (
+          <div className="text-xs text-gray-400 text-center py-4 animate-pulse">讀取中...</div>
+        ) : filteredTasks.length === 0 ? (
           <div className="text-xs text-gray-400 text-center py-4 italic">目前沒有任務</div>
         ) : (
           filteredTasks.map(task => (

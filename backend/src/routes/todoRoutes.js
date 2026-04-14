@@ -1,16 +1,13 @@
 // src/routes/todoRoutes.js
-import { Router } from 'express';
+import express from 'express';
 import { todoController } from '../controllers/todoController.js';
 import { requireAuth } from '../middleware/auth.js';
 
-const router = Router();
+const router = express.Router();
 
-// 確保所有路徑都受到 Logto 驗證保護
-router.use(requireAuth);
-
-router.get('/', todoController.getTodos);
-router.post('/', todoController.createTodo);
-router.patch('/:id', todoController.updateTodo);
-router.delete('/:id', todoController.deleteTodo);
+router.get('/', requireAuth(), todoController.getTodos);
+router.post('/', requireAuth(), todoController.createTodo);
+router.patch('/:id', requireAuth(), todoController.updateTodo);
+router.delete('/:id', requireAuth(), todoController.deleteTodo);
 
 export default router;

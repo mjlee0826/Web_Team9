@@ -1,0 +1,15 @@
+model Todo {
+    id        String   @id @default(uuid()) // 讓 Postgres 自動產生 UUID
+    userId    String   // 綁定 Logto 的 user.id / user.sub
+    title     String   // 任務名稱
+    q         String   @default("q1")       // 象限分類 (例如: "q1", "q2", "q3", "q4")
+    date      String?  // 目標日期 (YYYY-MM-DD)，允許為空
+    tags      String[] // 分類標籤 (PostgreSQL 原生支援字串陣列)
+    done      Boolean  @default(false)      // 任務完成狀態
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    // 建立索引：因為最常執行的動作是「查詢特定使用者的所有任務」
+    @@index([userId])
+}
