@@ -1,0 +1,35 @@
+model Habit {
+    id             String   @id @default(uuid())
+    userId         String
+
+    title          String
+    type           String
+    unit           String?
+    goal           Int      @default(0)
+    goalPeriod     String   @default("day")
+
+    streak         Int      @default(0)
+
+    createdAt      DateTime @default(now())
+    updatedAt      DateTime @updatedAt
+
+    logs           HabitLog[]
+
+    @@index([userId])
+}
+
+model HabitLog {
+    id        String   @id @default(uuid())
+    habitId   String
+    habit     Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+
+    dateStr   String   // YYYY-MM-DD
+
+    value     Int      @default(0)
+    completed Boolean  @default(false)
+
+    createdAt DateTime @default(now())
+
+    @@index([habitId, dateStr])
+    @@unique([habitId, dateStr])
+}
