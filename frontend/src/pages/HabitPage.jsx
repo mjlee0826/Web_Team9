@@ -564,19 +564,38 @@ function HabitTracker() {
                                 </select>
                             </div>
                         </div>
-                        <div className="flex gap-2 justify-end mt-8 pt-4 border-t border-gray-200">
-                            <button
-                                className="px-4 py-2 rounded border border-gray-300 bg-transparent text-gray-500 font-medium hover:bg-[#EFEDE8] hover:text-black transition"
-                                onClick={closeModal}
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                className="px-5 py-2 rounded bg-black text-white font-medium hover:bg-gray-800 transition"
-                                onClick={saveHabit}
-                            >
-                                Save Habit
-                            </button>
+                        <div className="flex justify-between mt-8 pt-4 border-t border-gray-200">
+                            {/* LEFT: Delete button (only in edit mode) */}
+                            {editMode && (
+                                <button
+                                    className="px-4 py-2 rounded border border-red-300 text-red-600 hover:bg-red-50 transition"
+                                    onClick={async () => {
+                                        const confirmDelete = window.confirm("Are you sure you want to delete this habit?");
+                                        if (!confirmDelete) return;
+
+                                        await deleteHabit(editHabitId);
+                                        closeModal();
+                                    }}
+                                >
+                                    Delete
+                                </button>
+                            )}
+
+                            {/* RIGHT: Cancel + Save */}
+                            <div className="flex gap-2 ml-auto">
+                                <button
+                                    className="px-4 py-2 rounded border border-gray-300 bg-transparent text-gray-500 font-medium hover:bg-[#EFEDE8] hover:text-black transition"
+                                    onClick={closeModal}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    className="px-5 py-2 rounded bg-black text-white font-medium hover:bg-gray-800 transition"
+                                    onClick={saveHabit}
+                                >
+                                    Save Habit
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
